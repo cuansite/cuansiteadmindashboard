@@ -1,0 +1,139 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isCreatingWithOwnerId() {
+      return isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+
+    function uidNotModified() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidString(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+             request.resource.data[field].size() >= minLen &&
+             request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string && request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidCustomer() {
+      return hasRequiredFields(['userId', 'name', 'company', 'email', 'plan', 'status']) &&
+             isValidString('name', 1, 100) &&
+             isValidString('company', 1, 100) &&
+             isValidEmail(request.resource.data.email) &&
+             isValidString('plan', 1, 50) &&
+             request.resource.data.status in ['active', 'inactive', 'pending'] &&
+             isValidOptionalString('phone', 50) &&
+             isValidOptionalString('websiteUrl', 200) &&
+             isValidOptionalString('notes', 1000);
+    }
+
+    function isValidSubscription() {
+      return hasRequiredFields(['userId', 'customerId', 'plan', 'amount', 'status', 'paymentStatus']) &&
+             isValidString('customerId', 1, 100) &&
+             isValidString('plan', 1, 50) &&
+             request.resource.data.amount is number && request.resource.data.amount >= 0 &&
+             request.resource.data.status in ['active', 'expired', 'upcoming'] &&
+             request.resource.data.paymentStatus in ['paid', 'unpaid', 'overdue', 'refunded'];
+    }
+
+    function isValidDeployment() {
+      return hasRequiredFields(['userId', 'customerId', 'date', 'version', 'domain', 'status']) &&
+             isValidString('customerId', 1, 100) &&
+             isValidString('date', 1, 50) &&
+             isValidString('version', 1, 50) &&
+             isValidString('domain', 1, 100) &&
+             request.resource.data.status in ['pending', 'in-progress', 'deployed', 'failed', 'updated'] &&
+             isValidOptionalString('server', 100) &&
+             isValidOptionalString('gitRepo', 200) &&
+             isValidOptionalString('notes', 1000);
+    }
+
+    function isValidInvoice() {
+      return hasRequiredFields(['userId', 'invoiceNumber', 'customerId', 'date', 'dueDate', 'subtotal', 'tax', 'total', 'status']) &&
+             isValidString('invoiceNumber', 1, 50) &&
+             isValidString('customerId', 1, 100) &&
+             isValidString('date', 1, 50) &&
+             isValidString('dueDate', 1, 50) &&
+             request.resource.data.subtotal is number && request.resource.data.subtotal >= 0 &&
+             request.resource.data.tax is number && request.resource.data.tax >= 0 &&
+             request.resource.data.total is number && request.resource.data.total >= 0 &&
+             request.resource.data.status in ['paid', 'unpaid', 'overdue', 'refunded'] &&
+             request.resource.data.items is list && request.resource.data.items.size() <= 100;
+    }
+
+    function isValidSettings() {
+      return hasRequiredFields(['userId', 'agencyName', 'supportEmail', 'currency', 'taxRate']) &&
+             isValidString('agencyName', 1, 100) &&
+             isValidEmail(request.resource.data.supportEmail) &&
+             isValidString('currency', 1, 20) &&
+             request.resource.data.taxRate is number && request.resource.data.taxRate >= 0 &&
+             (!('packages' in request.resource.data) || (request.resource.data.packages is list && request.resource.data.packages.size() <= 20));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /customers/{docId} {
+      allow read: if isOwner();
+      allow create: if isCreatingWithOwnerId() && isValidCustomer();
+      allow update: if isOwner() && uidNotModified() && isValidCustomer();
+      allow delete: if isOwner();
+    }
+
+    match /subscriptions/{docId} {
+      allow read: if isOwner();
+      allow create: if isCreatingWithOwnerId() && isValidSubscription();
+      allow update: if isOwner() && uidNotModified() && isValidSubscription();
+      allow delete: if isOwner();
+    }
+
+    match /deployments/{docId} {
+      allow read: if isOwner();
+      allow create: if isCreatingWithOwnerId() && isValidDeployment();
+      allow update: if isOwner() && uidNotModified() && isValidDeployment();
+      allow delete: if isOwner();
+    }
+
+    match /invoices/{docId} {
+      allow read: if isOwner();
+      allow create: if isCreatingWithOwnerId() && isValidInvoice();
+      allow update: if isOwner() && uidNotModified() && isValidInvoice();
+      allow delete: if isOwner();
+    }
+
+    match /settings/{docId} {
+      allow read: if isOwner();
+      allow create: if isCreatingWithOwnerId() && isValidSettings();
+      allow update: if isOwner() && uidNotModified() && isValidSettings();
+      allow delete: if isOwner();
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "entities": {
+    "Customer": {
+      "title": "Customer",
+      "description": "A customer of the agency",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner ID" },
+        "name": { "type": "string" },
+        "company": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "plan": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive", "pending"] },
+        "notes": { "type": "string" },
+        "websiteUrl": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "name", "company", "email", "plan", "status"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "A customer subscription",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "plan": { "type": "string" },
+        "amount": { "type": "number" },
+        "startDate": { "type": "string" },
+        "renewalDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "expired", "upcoming"] },
+        "paymentStatus": { "type": "string", "enum": ["paid", "unpaid", "overdue", "refunded"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "customerId", "plan", "amount", "status", "paymentStatus"]
+    },
+    "Deployment": {
+      "title": "Deployment",
+      "description": "A website deployment record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "date": { "type": "string" },
+        "version": { "type": "string" },
+        "domain": { "type": "string" },
+        "server": { "type": "string" },
+        "gitRepo": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "in-progress", "deployed", "failed", "updated"] },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "customerId", "date", "version", "domain", "status"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "A billing invoice",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "customerId": { "type": "string" },
+        "date": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string" },
+              "quantity": { "type": "number" },
+              "unitPrice": { "type": "number" },
+              "total": { "type": "number" }
+            }
+          }
+        },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["paid", "unpaid", "overdue", "refunded"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "invoiceNumber", "customerId", "date", "dueDate", "subtotal", "tax", "total", "status"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Agency settings",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "agencyName": { "type": "string" },
+        "supportEmail": { "type": "string" },
+        "currency": { "type": "string" },
+        "taxRate": { "type": "number" },
+        "packages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "price": { "type": "number" },
+              "durationMonths": { "type": "number" }
+            }
+          }
+        },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "agencyName", "supportEmail", "currency", "taxRate"]
+    }
+  },
+  "firestore": {
+    "customers": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Stores agency customers"
+    },
+    "subscriptions": {
+      "schema": { "$ref": "#/entities/Subscription" },
+      "description": "Stores customer subscriptions"
+    },
+    "deployments": {
+      "schema": { "$ref": "#/entities/Deployment" },
+      "description": "Stores deployment records"
+    },
+    "invoices": {
+      "schema": { "$ref": "#/entities/Invoice" },
+      "description": "Stores billing invoices"
+    },
+    "settings": {
+      "schema": { "$ref": "#/entities/Settings" },
+      "description": "Stores agency settings"
+    }
+  }
+}
